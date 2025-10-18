@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Acak Nama dengan Avatar 3D (DiceBear + GSAP)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col items-center py-10 bg-[url('background.jpg')] bg-cover bg-center">
+  <img src="ITCCLogo.png" class="w-[150px] h-fit mb-[20px]" alt="">
+  <div id="menu-awal" class="flex gap-4 mb-6">
+    <button id="mulai-data-lama" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">
+      Mulai dengan Data Tersimpan
+    </button>
+    <button id="tambah-data-baru" class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600">
+      Tambah Data Baru
+    </button>
+  </div>
+  <div id="form-tambah" class="hidden mb-6 flex flex-col items-center">
+    <div class="flex gap-2 mb-4">
+      <input id="input-nama" type="text" placeholder="Masukkan nama peserta" class="border rounded-lg p-2 w-64" />
+      <button id="btn-tambah" class="bg-green-500 text-white px-4 rounded-lg hover:bg-green-600">Tambah</button>
+      <button id="btn-start" class="px-4 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600">Mulai Acak</button>
+    </div>
+  </div>
+  <div id="container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 w-10/12"></div>
+
+  <script>
+    let peserta = JSON.parse(localStorage.getItem("peserta")) || [];
+    let originalPeserta = [...peserta];
+
+    const menuAwal = document.getElementById("menu-awal");
+    const formTambah = document.getElementById("form-tambah");
+    const inputNama = document.getElementById("input-nama");
+    const btnTambah = document.getElementById("btn-tambah");
+    const btnStart = document.getElementById("btn-start");
+    const container = document.getElementById("container");
+    const btnMulaiDataLama = document.getElementById("mulai-data-lama");
+    const btnTambahDataBaru = document.getElementById("tambah-data-baru");
+
+    function renderPeserta(data, showRank = false) {
+      container.innerHTML = "";
+      data.forEach((nama, index) => {
+        const div = document.createElement("div");
+        div.className =
+          "relative bg-white shadow-lg rounded-2xl p-4 flex items-center justify-between border border-gray-200 opacity-0 translate-y-10";
+
+        if (showRank) {
+          const rank = document.createElement("div");
+          rank.textContent = `#${index + 1}`;
+          rank.className =
+            "absolute -top-2 -left-2 bg-indigo-500 text-white text-sm font-bold px-2 py-1 rounded-full shadow";
+          div.appendChild(rank);
+        }
+
+        div.innerHTML += `
+          <div class="flex items-center gap-4">
+            <img src="https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(nama)}" 
+                 alt="avatar" class="w-14 h-14 rounded-full border" />
+            <span class="text-lg font-semibold text-gray-700">${nama}</span>
+          </div>
+          <button class="text-red-500 hover:text-red-700 font-bold text-xl" onclick="hapusPeserta('${nama}')">&times;</button>
+        `;
+        container.appendChild(div);
+      });
+      localStorage.setItem("peserta", JSON.stringify(peserta));
+    }
+
+    function animateFadeDown() {
+      gsap.fromTo(
+        "#container > div",
+        { opacity: 0, y: 50 },
+        {
+          opacity: 1,
+          y: 0,
+          duration: 0.4,
+          stagger: 0.15,
+          ease: "power2.out",
+        }
+      );
+    }
+
+    function hapusPeserta(nama) {
+      peserta = peserta.filter((p) => p !== nama);
+      localStorage.setItem("peserta", JSON.stringify(peserta));
+      renderPeserta(peserta);
+      animateFadeDown();
+    }
+
+    function acakArray(array) {
+      const original = [...array];
+      let shuffled = [...array];
+      let attempts = 0;
+
+      do {
+        for (let repeat = 0; repeat < 4; repeat++) {
+          for (let i = shuffled.length - 1; i > 0; i--) {
+            const j = crypto.getRandomValues(new Uint32Array(1))[0] % (i + 1);
+            [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+          }
+        }
+        attempts++;
+      } while (JSON.stringify(shuffled) === JSON.stringify(original) && attempts < 10);
+
+      return shuffled;
+    }
+
+    btnTambah.addEventListener("click", () => {
+      const nama = inputNama.value.trim();
+      if (nama === "") return alert("Nama tidak boleh kosong!");
+      peserta.push(nama);
+      originalPeserta = [...peserta];
+      inputNama.value = "";
+      localStorage.setItem("peserta", JSON.stringify(peserta));
+      renderPeserta(peserta);
+      animateFadeDown();
+    });
+
+    btnStart.addEventListener("click", () => {
+      if (peserta.length < 2) return alert("Minimal harus ada 2 peserta untuk diacak!");
+      const acak = acakArray([...peserta]);
+      renderPeserta(acak, true);
+      animateFadeDown();
+    });
+
+    btnMulaiDataLama.addEventListener("click", () => {
+      if (peserta.length === 0) return alert("Belum ada data tersimpan!");
+      menuAwal.classList.add("hidden");
+      formTambah.classList.remove("hidden");
+      renderPeserta(peserta);
+      animateFadeDown();
+    });
+
+    btnTambahDataBaru.addEventListener("click", () => {
+      localStorage.removeItem("peserta");
+      peserta = [];
+      originalPeserta = [];
+      menuAwal.classList.add("hidden");
+      formTambah.classList.remove("hidden");
+      renderPeserta(peserta);
+    });
+
+    window.hapusPeserta = hapusPeserta;
+  </script>
+</body>
+</html>
