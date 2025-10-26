@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Countdown Timer Lomba (Tailwind + Local MP3)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.3/howler.min.js"></script>
+</head>
+<body class="bg-[url('background.jpg')] bg-cover bg-center min-h-screen flex items-center justify-center p-6">
+  <div class="bg-white rounded-2xl shadow-2xl p-8 w-fit text-center">
+    <h1 class="text-3xl font-bold mb-6 text-gray-800">Countdown Timer Lomba</h1>
+
+    <div id="display" class="text-[180px] font-extrabold text-gray-800 mb-8 transition-all duration-500">
+      00:00
+    </div>
+
+    <div class="flex justify-center items-center space-x-3 mb-5">
+      <label class="text-gray-600 font-medium">Menit:</label>
+      <input id="minutes" type="number" min="0" value="0" class="w-20 text-center border rounded-lg p-2 focus:ring-2 focus:ring-green-400">
+      <label class="text-gray-600 font-medium">Detik:</label>
+      <input id="seconds" type="number" min="0" max="59" value="0" class="w-20 text-center border rounded-lg p-2 focus:ring-2 focus:ring-green-400">
+    </div>
+
+    <div class="flex justify-center space-x-3 mb-5">
+      <button id="set5" class="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-lg transition">Set 5 Menit</button>
+      <button id="set10" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg transition">Set 10 Menit</button>
+      <button id="start" class="bg-indigo-500 hover:bg-indigo-600 text-white font-semibold py-2 px-6 rounded-lg transition">Mulai</button>
+      <button id="reset" class="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-6 rounded-lg transition">Reset</button>
+    </div>
+  </div>
+
+  <script>
+    // Variabel global
+    let timerInterval = null;
+    let totalSeconds = 0;
+    let oneMinuteAlerted = false;
+
+    // 🔊 Suara lokal (ubah sesuai nama file kamu)
+    const bellOneMinute = new Howl({
+      src: ['./bell1.mp3'], // bunyi 1 menit tersisa
+      html5: true
+    });
+
+    const bellEnd = new Howl({
+      src: ['./bell3.mp3'], // bunyi waktu habis (1x)
+      html5: true
+    });
+
+    // Elemen DOM
+    const display = document.getElementById('display');
+    const minutesInput = document.getElementById('minutes');
+    const secondsInput = document.getElementById('seconds');
+    const btnSet5 = document.getElementById('set5');
+    const btnSet10 = document.getElementById('set10');
+    const btnStart = document.getElementById('start');
+    const btnReset = document.getElementById('reset');
+
+    // Event listener tombol
+    btnSet5.addEventListener('click', () => setTime(5, 0));
+    btnSet10.addEventListener('click', () => setTime(10, 0));
+    btnStart.addEventListener('click', startTimer);
+    btnReset.addEventListener('click', resetTimer);
+
+    // Fungsi set waktu preset
+    function setTime(mins, secs) {
+      stopTimer();
+      oneMinuteAlerted = false;
+      totalSeconds = mins * 60 + secs;
+      minutesInput.value = mins;
+      secondsInput.value = secs;
+      updateDisplay();
+    }
+
+    // Fungsi mulai timer
+    function startTimer() {
+      stopTimer();
+      oneMinuteAlerted = false;
+
+      const mins = parseInt(minutesInput.value, 10) || 0;
+      const secs = parseInt(secondsInput.value, 10) || 0;
+      totalSeconds = mins * 60 + secs;
+
+      if (totalSeconds <= 0) {
+        return alert('Waktu tidak boleh 0!');
+      }
+
+      updateDisplay();
+
+      timerInterval = setInterval(() => {
+        totalSeconds--;
+        updateDisplay();
+
+        // 🔔 Bel 1 menit tersisa
+        if (totalSeconds === 60 && !oneMinuteAlerted) {
+          bellOneMinute.play();
+          oneMinuteAlerted = true;
+        }
+
+        // ⏰ Waktu habis
+        if (totalSeconds <= 0) {
+          stopTimer();
+          bellEnd.play(); // mainkan sekali saja
+        }
+      }, 1000);
+    }
+
+    // Fungsi reset timer
+    function resetTimer() {
+      stopTimer();
+      totalSeconds = 0;
+      oneMinuteAlerted = false;
+      minutesInput.value = 0;
+      secondsInput.value = 0;
+      display.textContent = "00:00";
+      display.classList.remove('text-red-600');
+    }
+
+    // Hentikan timer
+    function stopTimer() {
+      if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+      }
+    }
+
+    // Update tampilan waktu
+    function updateDisplay() {
+      const mins = Math.floor(totalSeconds / 60);
+      const secs = totalSeconds % 60;
+      display.textContent = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+
+      if (totalSeconds <= 60 && totalSeconds > 0) {
+        display.classList.add('text-red-600');
+      } else {
+        display.classList.remove('text-red-600');
+      }
+    }
+
+    updateDisplay();
+  </script>
+</body>
+</html>
